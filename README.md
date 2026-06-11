@@ -2,7 +2,7 @@
 
 Initial Godot 4 GDExtension implementation spike for nozzle diagnostics and honest texture-transfer status reporting.
 
-This is **not** a Godot GPU texture sharing proof and it is **not** a zero-copy claim. The current implementation builds a real GDExtension and exposes deterministic diagnostics, a CPU oracle helper, and a compile-time probe for the pinned Godot public texture API surface. It does not run a Godot renderer in CI and does not prove any runtime texture transfer path.
+This is **not** a Godot GPU texture sharing proof and it is **not** a zero-copy claim. The current implementation builds a real GDExtension, runs a Linux Godot headless runtime smoke that loads it, exposes deterministic diagnostics, runs CPU oracle checks inside Godot, and keeps texture transfer paths explicitly unproven.
 
 ## Baseline
 
@@ -24,6 +24,17 @@ python3 tests/check_package.py
 
 Use `platform=linux` or `platform=windows` on those runners.
 
+Linux-only Godot runtime smoke:
+
+```bash
+python3 scripts/run_godot_runtime_smoke.py
+```
+
+The runtime smoke downloads the official `Godot_v4.6.3-stable_linux.x86_64.zip`
+binary, verifies SHA-256
+`d0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3`,
+then runs the example project with `--headless --path project`.
+
 ## Implemented
 
 - GDExtension entry point `nozzle_godot_library_init`.
@@ -37,6 +48,7 @@ Use `platform=linux` or `platform=windows` on those runners.
   - `Texture2DRD::get_texture_rd_rid` (`deps/godot-cpp/gen/include/godot_cpp/classes/texture2drd.hpp:50`)
 - Package-shape check and zip output with exactly one top-level `nozzle-godot/` folder.
 - CI build for macOS, Linux, and Windows.
+- Linux CI runtime smoke using the official Godot 4.6.3 x86_64 binary. The smoke loads the packaged GDExtension from the example project, prints Godot version/platform/renderer setting, prints `NozzleDiagnostics.get_status_table()`, runs CPU oracle negative probes for `320x240` and `641x479`, and exits deterministically.
 
 ## Status legend
 
@@ -44,7 +56,8 @@ Use `platform=linux` or `platform=windows` on those runners.
 - `PRESENT_UNEXECUTED`: callable code exists, but CI does not execute it inside Godot.
 - `PUBLIC_API_SURFACE_COMPILES`: pinned godot-cpp public API symbols compile.
 - `UNPROVEN_RUNTIME_TEXTURE_PATH`: runtime renderer/backend handle semantics and nozzle compatibility are not proven.
-- `MISSING_RUNTIME_SMOKE`: no Godot editor/runtime smoke has executed for that renderer/path.
+- `MISSING_RUNTIME_RUN`: no Godot editor/runtime smoke has executed for that platform.
+- `MISSING_HOST_SMOKE`: Godot runtime loaded the extension, but no actual texture/frame oracle was executed for that path.
 
 ## Build/package status
 
@@ -52,31 +65,29 @@ Use `platform=linux` or `platform=windows` on those runners.
 | --- | --- | --- |
 | GDExtension build | PASS_COMPILE_PACKAGE_ONLY | godot-cpp based shared library builds on macOS/Linux/Windows CI |
 | Package shape | PASS_COMPILE_PACKAGE_ONLY | checker validates extension metadata, project files, library output, and zip root |
-| Example project/scene | PASS_COMPILE_PACKAGE_ONLY | project and diagnostic scene are included; not loaded by Godot in CI |
+| Example project/scene | PASS on Linux CI | official Godot 4.6.3 Linux binary loads the project/GDExtension in headless mode |
 | Public native/RD texture API surface | PUBLIC_API_SURFACE_COMPILES | C++ member signature probes compile against pinned godot-cpp headers |
-| CPU fallback oracle | PRESENT_UNEXECUTED | deterministic bounded RGBA checksum helper exists; CI does not execute it inside Godot |
+| CPU fallback oracle | PASS on Linux CI | deterministic positive plus y-flip, R/B swap, alpha mutation, and byte-size negative probes run inside Godot |
 | Zero-copy GPU interop | UNSUPPORTED_UNPROVEN | no zero-copy runtime evidence; do not claim support |
 
 ## Renderer/platform/copy-cost matrix
 
 | Direction | Renderer | Platform | Runtime smoke | Transfer status | Copy cost | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| Godot texture/render target -> nozzle | Forward+ | macOS | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| Godot texture/render target -> nozzle | Forward+ | Linux | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| Godot texture/render target -> nozzle | Forward+ | Windows | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| Godot texture/render target -> nozzle | Mobile | macOS/Linux/Windows | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| Godot texture/render target -> nozzle | Compatibility | macOS/Linux/Windows | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| nozzle -> Godot texture | Forward+ | macOS | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| nozzle -> Godot texture | Forward+ | Linux | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| nozzle -> Godot texture | Forward+ | Windows | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| nozzle -> Godot texture | Mobile | macOS/Linux/Windows | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
-| nozzle -> Godot texture | Compatibility | macOS/Linux/Windows | MISSING_RUNTIME_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no renderer run |
+| Godot texture/render target -> nozzle | Compatibility/headless project setting | Linux | PASS extension load | MISSING_HOST_SMOKE | UNPROVEN | runtime smoke loads extension, but no texture/frame oracle is executed |
+| Godot texture/render target -> nozzle | Forward+ | macOS/Linux/Windows | MISSING_HOST_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no Forward+ runtime transfer run |
+| Godot texture/render target -> nozzle | Mobile | macOS/Linux/Windows | MISSING_HOST_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no Mobile runtime transfer run |
+| Godot texture/render target -> nozzle | Compatibility | macOS/Windows | MISSING_RUNTIME_RUN | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | no macOS/Windows Godot runtime run |
+| nozzle -> Godot texture | Compatibility/headless project setting | Linux | PASS extension load | MISSING_HOST_SMOKE | UNPROVEN | runtime smoke loads extension, but no texture/frame oracle is executed |
+| nozzle -> Godot texture | Forward+ | macOS/Linux/Windows | MISSING_HOST_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no Forward+ runtime transfer run |
+| nozzle -> Godot texture | Mobile | macOS/Linux/Windows | MISSING_HOST_SMOKE | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | API symbols compile; no Mobile runtime transfer run |
+| nozzle -> Godot texture | Compatibility | macOS/Windows | MISSING_RUNTIME_RUN | UNPROVEN_RUNTIME_TEXTURE_PATH | UNPROVEN | no macOS/Windows Godot runtime run |
 
 ## Follow-up required before support claims
 
-1. Run a real Godot binary in CI or a controlled host environment and load the packaged GDExtension.
-2. Record renderer backend (`Forward+`, `Mobile`, `Compatibility`) and platform.
-3. Attempt a specific texture transfer direction with runtime code/log evidence using the public texture API surface above.
+1. Attempt a specific texture transfer direction with runtime code/log evidence using the public texture API surface above.
+2. Add renderer-specific runtime runs for Forward+ and Mobile before claiming those paths.
+3. Add macOS/Windows runtime runs before claiming host runtime support there.
 4. Only after runtime proof, classify copy cost as zero-copy, GPU-copy, or CPU-copy. Until then, keep copy cost `UNPROVEN`.
 
 ## License
