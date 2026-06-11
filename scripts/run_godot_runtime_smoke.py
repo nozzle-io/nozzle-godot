@@ -24,6 +24,8 @@ REQUIRED_MARKERS = [
     'NOZZLE_GODOT_BINARY version=4.6.3-stable tag=7d41c59c457bd5a245092b4e7eb2d833e3b3f8c3 target=35e80b3a8822a9df9be390814b62f44c0a9c69e8',
     'NOZZLE_GODOT_PROJECT path=',
     'NOZZLE_GODOT_IMPORT_PASS',
+    'NOZZLE_GODOT_EXTENSION_LOAD path=res://nozzle_godot.gdextension status=',
+    'NOZZLE_GODOT_CLASSDB class=NozzleDiagnostics available=true',
     'NOZZLE_GODOT_EXTENSION_CLASS class=NozzleDiagnostics available=true',
     'NOZZLE_GODOT_VERSION=',
     'NOZZLE_GODOT_RUNTIME os=',

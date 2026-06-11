@@ -22,11 +22,15 @@ for path in required:
         raise SystemExit(f'missing {path}')
 
 scene = (PKG / 'project/scenes/nozzle_diagnostics.tscn').read_text(encoding='utf-8')
-if '[node name="NozzleDiagnosticsExample" type="NozzleDiagnostics"]' not in scene:
-    raise SystemExit('runtime scene does not instantiate the NozzleDiagnostics GDExtension node')
+if '[node name="NozzleDiagnosticsExample" type="Node"]' not in scene:
+    raise SystemExit('runtime scene root is not a plain Node smoke harness')
 script = (PKG / 'project/scenes/nozzle_diagnostics.gd').read_text(encoding='utf-8')
-if not script.startswith('extends NozzleDiagnostics'):
-    raise SystemExit('runtime script does not extend the NozzleDiagnostics GDExtension node')
+if not script.startswith('extends Node'):
+    raise SystemExit('runtime script does not use a parse-safe plain Node smoke harness')
+if 'GDExtensionManager.load_extension(extension_path)' not in script:
+    raise SystemExit('runtime script does not explicitly load the packaged GDExtension')
+if 'ClassDB.instantiate("NozzleDiagnostics")' not in script:
+    raise SystemExit('runtime script does not instantiate NozzleDiagnostics after extension load')
 project = (PKG / 'project/project.godot').read_text(encoding='utf-8')
 if 'run/main_scene="res://scenes/nozzle_diagnostics.tscn"' not in project:
     raise SystemExit('project main scene does not point to the runtime smoke scene')

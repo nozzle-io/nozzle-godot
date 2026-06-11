@@ -39,7 +39,7 @@ then runs the packaged example project with `--headless --path build/package/noz
 
 - GDExtension entry point `nozzle_godot_library_init`.
 - `NozzleDiagnostics` Node class registered at scene initialization level.
-- Example Godot project with `.gdextension`, scene, and script. The smoke scene instantiates the `NozzleDiagnostics` native node directly and verifies required native methods before printing PASS, so headless CI proves GDExtension class loading instead of only probing `ClassDB` from a plain script node.
+- Example Godot project with `.gdextension`, scene, and script. The smoke scene uses a plain `Node` harness so the script can parse before native class registration, explicitly loads `res://nozzle_godot.gdextension` through `GDExtensionManager.load_extension`, then instantiates `NozzleDiagnostics` through `ClassDB` and verifies required native methods before printing PASS. This proves packaged GDExtension loading without depending on parse-time native base-class availability.
 - Deterministic CPU RGBA oracle metadata for fallback smoke scaffolding.
 - Compile-time public texture API surface probe for the pinned godot-cpp headers:
   - `RenderingServer::texture_create_from_native_handle` (`deps/godot-cpp/gen/include/godot_cpp/classes/rendering_server.hpp:835`)
