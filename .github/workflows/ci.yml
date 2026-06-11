@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, stable]
   pull_request:
@@ -13,7 +14,7 @@ concurrency:
 jobs:
   build-test:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
@@ -54,9 +55,9 @@ jobs:
           echo "scons_version=$scons_version" >> "$GITHUB_OUTPUT"
           echo "toolchain_hash=$toolchain_hash" >> "$GITHUB_OUTPUT"
           echo "NOZZLE_GODOT_CACHE_METADATA godot_cpp=$godot_cpp_sha nozzle=$nozzle_sha scons=$scons_version toolchain=$toolchain"
-      - name: Cache godot-cpp SCons outputs
+      - name: Restore godot-cpp SCons outputs
         id: godot-cpp-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             .sconsign.dblite
@@ -74,6 +75,19 @@ jobs:
         run: echo "NOZZLE_GODOT_CACHE_HIT godot_cpp=${{ steps.godot-cpp-cache.outputs.cache-hit }}"
       - name: Build GDExtension
         run: scons platform=${{ matrix.godot_platform }} target=template_debug -j2
+      - name: Save godot-cpp SCons outputs
+        if: ${{ success() && steps.godot-cpp-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .sconsign.dblite
+            deps/godot-cpp/bin
+            deps/godot-cpp/gen
+            deps/godot-cpp/src/**/*.o
+            deps/godot-cpp/src/**/*.os
+            deps/godot-cpp/src/**/*.obj
+          key: >-
+            godot-cpp-scons-${{ runner.os }}-${{ runner.arch }}-${{ matrix.godot_platform }}-template_debug-${{ steps.cache-meta.outputs.godot_cpp_sha }}-${{ steps.cache-meta.outputs.nozzle_sha }}-scons-${{ steps.cache-meta.outputs.scons_version }}-toolchain-${{ steps.cache-meta.outputs.toolchain_hash }}-inputs-${{ hashFiles('SConstruct', '.github/workflows/ci.yml', 'deps/godot-cpp/SConstruct', 'project/nozzle_godot.gdextension') }}
       - name: Package
         run: python scripts/package.py
       - name: Check package shape
