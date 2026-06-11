@@ -1,8 +1,20 @@
 extends Node
 
 func _ready() -> void:
-    var diagnostics := NozzleDiagnostics.new()
     var renderer_name := str(ProjectSettings.get_setting("rendering/renderer/rendering_method"))
+    var class_available := ClassDB.class_exists("NozzleDiagnostics")
+    print("NOZZLE_GODOT_EXTENSION_CLASS class=NozzleDiagnostics available=", class_available)
+    if not class_available:
+        push_error("NozzleDiagnostics GDExtension class is not registered")
+        get_tree().quit(2)
+        return
+
+    var diagnostics := ClassDB.instantiate("NozzleDiagnostics")
+    if diagnostics == null:
+        push_error("NozzleDiagnostics instantiation returned null")
+        get_tree().quit(3)
+        return
+
     print("NOZZLE_GODOT_VERSION=", Engine.get_version_info())
     print("NOZZLE_GODOT_RUNTIME os=", OS.get_name(), " renderer=", renderer_name)
     print("NOZZLE_GODOT_STATUS=", diagnostics.get_status_table())

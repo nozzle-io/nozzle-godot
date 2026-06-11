@@ -20,6 +20,7 @@ LINUX_URL = f'https://github.com/godotengine/godot/releases/download/{GODOT_VERS
 LINUX_SHA256 = 'd0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3'
 
 REQUIRED_MARKERS = [
+    'NOZZLE_GODOT_EXTENSION_CLASS class=NozzleDiagnostics available=',
     'NOZZLE_GODOT_VERSION=',
     'NOZZLE_GODOT_RUNTIME os=',
     'NOZZLE_GODOT_STATUS=',
