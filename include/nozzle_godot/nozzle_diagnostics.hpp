@@ -1,7 +1,9 @@
 #pragma once
 
 #include <godot_cpp/classes/node.hpp>
+#include <godot_cpp/classes/image.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/string.hpp>
 
 namespace godot {
@@ -19,7 +21,9 @@ public:
     Dictionary get_public_texture_api_surface() const;
     Dictionary classify_texture_publish_path(const String &renderer_name) const;
     Dictionary make_cpu_pattern_oracle(int32_t width, int32_t height) const;
+    PackedByteArray make_cpu_pattern_bytes(int32_t width, int32_t height) const;
     Dictionary run_cpu_pattern_oracle(int32_t width, int32_t height) const;
+    Dictionary run_godot_image_to_nozzle_oracle(const Ref<Image> &image, int32_t width, int32_t height) const;
 };
 
 } // namespace godot

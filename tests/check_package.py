@@ -48,7 +48,7 @@ if parser.get('configuration', 'compatibility_minimum') != '"4.6"':
     raise SystemExit('compatibility_minimum mismatch')
 
 readme = (PKG / 'README.md').read_text(encoding='utf-8')
-for phrase in ['UNPROVEN_RUNTIME_TEXTURE_PATH', 'PUBLIC_API_SURFACE_COMPILES', 'UNSUPPORTED_UNPROVEN', '4.6.3-stable', '58d1de720b8ffe9f8ffcdfe3a85148582cfd2e74']:
+for phrase in ['PASS Godot runtime', 'cpu-copy', 'UNPROVEN_RUNTIME_TEXTURE_PATH', 'PUBLIC_API_SURFACE_COMPILES', 'UNSUPPORTED_UNPROVEN', '4.6.3-stable', '58d1de720b8ffe9f8ffcdfe3a85148582cfd2e74']:
     if phrase not in readme:
         raise SystemExit(f'README missing {phrase}')
 

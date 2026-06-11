@@ -37,6 +37,34 @@ func _require_oracle(diagnostics: Object, width: int, height: int, exit_code: in
         return false
     return true
 
+func _require_texture_oracle(diagnostics: Object, width: int, height: int, exit_code: int, require_transfer: bool) -> bool:
+    var bytes: PackedByteArray = diagnostics.call("make_cpu_pattern_bytes", width, height)
+    var image := Image.create_from_data(width, height, false, Image.FORMAT_RGBA8, bytes)
+    var texture := ImageTexture.create_from_image(image)
+    if texture == null:
+        _fail("failed to create ImageTexture for %dx%d" % [width, height], exit_code)
+        return false
+    var readback := texture.get_image()
+    var result: Dictionary = diagnostics.call("run_godot_image_to_nozzle_oracle", readback, width, height)
+    print("NOZZLE_GODOT_TEXTURE_INTEROP size=", width, "x", height, " godot_texture_to_nozzle=", result.get("godot_texture_to_nozzle", "MISSING"), " nozzle_receiver_oracle=", result.get("nozzle_receiver_oracle", "MISSING"), " renderer_backend_support=", result.get("renderer_backend_support", "MISSING"), " copy_cost=", result.get("copy_cost", "MISSING"), " zero_copy=", result.get("zero_copy", "MISSING"), " gpu_copy=", result.get("gpu_copy", "MISSING"), " no_y_flip=", result.get("no_y_flip", "MISSING"), " no_r_b_swap=", result.get("no_r_b_swap", "MISSING"), " alpha=", result.get("alpha", "MISSING"), " byte_size_mismatch=", result.get("byte_size_mismatch", "MISSING"), " result=", result)
+    var ok: bool = str(result.get("status", "")) == "PASS"
+    ok = ok and str(result.get("godot_texture_to_nozzle", "")) == "PASS"
+    ok = ok and str(result.get("nozzle_receiver_oracle", "")) == "PASS"
+    ok = ok and str(result.get("copy_cost", "")) == "cpu-copy"
+    ok = ok and str(result.get("zero_copy", "")) == "UNPROVEN"
+    ok = ok and str(result.get("gpu_copy", "")) == "UNPROVEN"
+    ok = ok and str(result.get("no_y_flip", "")) == "PASS"
+    ok = ok and str(result.get("no_r_b_swap", "")) == "PASS"
+    ok = ok and str(result.get("alpha", "")) == "PASS"
+    ok = ok and str(result.get("byte_size_mismatch", "")) == "PASS"
+    if not ok:
+        if not require_transfer:
+            print("NOZZLE_GODOT_TEXTURE_INTEROP_MISSING size=", width, "x", height, " reason=runtime_backend_unavailable result=", result)
+            return true
+        _fail("Godot ImageTexture -> nozzle receiver oracle failed for %dx%d" % [width, height], exit_code)
+        return false
+    return true
+
 func _ready() -> void:
     var extension_path := "res://nozzle_godot.gdextension"
     var load_status: int = GDExtensionManager.load_extension(extension_path)
@@ -64,7 +92,7 @@ func _ready() -> void:
     var adapter_api_version := RenderingServer.get_video_adapter_api_version()
     var display_server_name := DisplayServer.get_name()
     var class_available := true
-    for method_name in ["get_nozzle_sha", "get_godot_target", "get_status_table", "get_public_texture_api_surface", "classify_texture_publish_path", "make_cpu_pattern_oracle", "run_cpu_pattern_oracle"]:
+    for method_name in ["get_nozzle_sha", "get_godot_target", "get_status_table", "get_public_texture_api_surface", "classify_texture_publish_path", "make_cpu_pattern_oracle", "make_cpu_pattern_bytes", "run_cpu_pattern_oracle", "run_godot_image_to_nozzle_oracle"]:
         class_available = _require_method(diagnostics, method_name) and class_available
     print("NOZZLE_GODOT_EXTENSION_CLASS class=NozzleDiagnostics available=", class_available, " object_class=", diagnostics.get_class())
     if not class_available:
@@ -83,5 +111,14 @@ func _ready() -> void:
         return
     if not _require_oracle(diagnostics, 641, 479, 7):
         return
+    var require_texture_transfer := OS.get_environment("NOZZLE_GODOT_REQUIRE_TEXTURE_TRANSFER") == "1"
+    if not _require_texture_oracle(diagnostics, 320, 240, 8, require_texture_transfer):
+        return
+    if not _require_texture_oracle(diagnostics, 641, 479, 9, require_texture_transfer):
+        return
+    if require_texture_transfer:
+        print("NOZZLE_GODOT_TEXTURE_TRANSFER godot_texture_to_nozzle=PASS nozzle_receiver_oracle=PASS renderer_backend_support=CPU_READBACK_ONLY copy_cost=cpu-copy zero_copy=UNPROVEN gpu_copy=UNPROVEN runtime_oracle=PASS_CPU_COPY_RUNTIME_ORACLE")
+    else:
+        print("NOZZLE_GODOT_TEXTURE_TRANSFER godot_texture_to_nozzle=MISSING_RUNTIME_BACKEND nozzle_receiver_oracle=MISSING_RUNTIME_BACKEND renderer_backend_support=MISSING_RUNTIME_BACKEND copy_cost=UNPROVEN zero_copy=UNPROVEN gpu_copy=UNPROVEN")
     print("NOZZLE_GODOT_RUNTIME_SMOKE PASS")
     get_tree().quit(0)
