@@ -27,11 +27,11 @@ func _require_method(diagnostics: Object, method_name: String) -> bool:
 func _require_oracle(diagnostics: Object, width: int, height: int, exit_code: int) -> bool:
     var result: Dictionary = diagnostics.call("run_cpu_pattern_oracle", width, height)
     print("NOZZLE_GODOT_CPU_ORACLE size=", width, "x", height, " status=", result.get("status", "MISSING"), " result=", result)
-    var ok := result.get("status", "") == "PASS"
-    ok = ok and result.get("no_y_flip", "") == "PASS"
-    ok = ok and result.get("no_r_b_swap", "") == "PASS"
-    ok = ok and result.get("alpha", "") == "PASS"
-    ok = ok and result.get("byte_size_mismatch", "") == "PASS"
+    var ok: bool = str(result.get("status", "")) == "PASS"
+    ok = ok and str(result.get("no_y_flip", "")) == "PASS"
+    ok = ok and str(result.get("no_r_b_swap", "")) == "PASS"
+    ok = ok and str(result.get("alpha", "")) == "PASS"
+    ok = ok and str(result.get("byte_size_mismatch", "")) == "PASS"
     if not ok:
         _fail("NozzleDiagnostics CPU oracle failed for %dx%d" % [width, height], exit_code)
         return false
