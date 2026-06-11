@@ -21,6 +21,16 @@ for path in required:
     if not path.exists():
         raise SystemExit(f'missing {path}')
 
+scene = (PKG / 'project/scenes/nozzle_diagnostics.tscn').read_text(encoding='utf-8')
+if '[node name="NozzleDiagnosticsExample" type="NozzleDiagnostics"]' not in scene:
+    raise SystemExit('runtime scene does not instantiate the NozzleDiagnostics GDExtension node')
+script = (PKG / 'project/scenes/nozzle_diagnostics.gd').read_text(encoding='utf-8')
+if not script.startswith('extends NozzleDiagnostics'):
+    raise SystemExit('runtime script does not extend the NozzleDiagnostics GDExtension node')
+project = (PKG / 'project/project.godot').read_text(encoding='utf-8')
+if 'run/main_scene="res://scenes/nozzle_diagnostics.tscn"' not in project:
+    raise SystemExit('project main scene does not point to the runtime smoke scene')
+
 bin_dir = PKG / 'project/bin'
 libs = [p for p in bin_dir.rglob('*') if p.is_file()]
 if not libs:

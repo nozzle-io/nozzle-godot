@@ -1,13 +1,13 @@
 #pragma once
 
-#include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 
 namespace godot {
 
-class NozzleDiagnostics : public RefCounted {
-    GDCLASS(NozzleDiagnostics, RefCounted)
+class NozzleDiagnostics : public Node {
+    GDCLASS(NozzleDiagnostics, Node)
 
 protected:
     static void _bind_methods();

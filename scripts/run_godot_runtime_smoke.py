@@ -7,6 +7,7 @@ import subprocess
 import sys
 import urllib.request
 import zipfile
+import filecmp
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,14 +21,26 @@ LINUX_URL = f'https://github.com/godotengine/godot/releases/download/{GODOT_VERS
 LINUX_SHA256 = 'd0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3'
 
 REQUIRED_MARKERS = [
-    'NOZZLE_GODOT_EXTENSION_CLASS class=NozzleDiagnostics available=',
+    'NOZZLE_GODOT_BINARY version=4.6.3-stable tag=7d41c59c457bd5a245092b4e7eb2d833e3b3f8c3 target=35e80b3a8822a9df9be390814b62f44c0a9c69e8',
+    'NOZZLE_GODOT_PROJECT path=',
+    'NOZZLE_GODOT_EXTENSION_CLASS class=NozzleDiagnostics available=true',
     'NOZZLE_GODOT_VERSION=',
     'NOZZLE_GODOT_RUNTIME os=',
+    'NOZZLE_GODOT_RENDERER_BACKEND method=',
+    'NOZZLE_GODOT_SHA nozzle=',
     'NOZZLE_GODOT_STATUS=',
+    'NOZZLE_GODOT_METHOD method=get_nozzle_sha available=true',
+    'NOZZLE_GODOT_METHOD method=get_godot_target available=true',
+    'NOZZLE_GODOT_METHOD method=get_status_table available=true',
+    'NOZZLE_GODOT_METHOD method=get_public_texture_api_surface available=true',
+    'NOZZLE_GODOT_METHOD method=classify_texture_publish_path available=true',
+    'NOZZLE_GODOT_METHOD method=make_cpu_pattern_oracle available=true',
+    'NOZZLE_GODOT_METHOD method=run_cpu_pattern_oracle available=true',
     'NOZZLE_GODOT_PUBLIC_TEXTURE_API=',
     'NOZZLE_GODOT_TEXTURE_PATH=',
-    'NOZZLE_GODOT_CPU_ORACLE size=320x240',
-    'NOZZLE_GODOT_CPU_ORACLE size=641x479',
+    'NOZZLE_GODOT_CPU_PATTERN_ORACLE size=320x240',
+    'NOZZLE_GODOT_CPU_ORACLE size=320x240 status=PASS',
+    'NOZZLE_GODOT_CPU_ORACLE size=641x479 status=PASS',
     'NOZZLE_GODOT_RUNTIME_SMOKE PASS',
     'godot_runtime_smoke',
     'godot_texture_to_nozzle',
@@ -80,23 +93,50 @@ def ensure_godot_linux():
         if not executable.exists():
             raise SystemExit('Godot executable not found after extraction')
         executable.chmod(executable.stat().st_mode | 0o111)
-    print(f'NOZZLE_GODOT_BINARY version={GODOT_VERSION} tag={GODOT_TAG_SHA} target={GODOT_TARGET_SHA} path={executable}', flush=True)
-    return executable
+    binary_marker = f'NOZZLE_GODOT_BINARY version={GODOT_VERSION} tag={GODOT_TAG_SHA} target={GODOT_TARGET_SHA} path={executable}'
+    print(binary_marker, flush=True)
+    return executable, binary_marker
+
+
+def require_packaged_project_current(project_path):
+    source_files = [
+        'project/project.godot',
+        'project/nozzle_godot.gdextension',
+        'project/scenes/nozzle_diagnostics.tscn',
+        'project/scenes/nozzle_diagnostics.gd',
+    ]
+    for relative in source_files:
+        source = ROOT / relative
+        packaged = project_path / Path(relative).relative_to('project')
+        if not packaged.exists():
+            raise SystemExit(f'packaged project is missing {packaged}')
+        if not filecmp.cmp(source, packaged, shallow=False):
+            raise SystemExit(f'packaged project is stale or differs from source: {relative}')
+
+    libs = [path for path in (project_path / 'bin').rglob('*') if path.is_file()]
+    if not libs:
+        raise SystemExit(f'packaged project has no GDExtension library under {project_path / "bin"}')
 
 
 def main():
     if platform.system() != 'Linux':
         raise SystemExit('run_godot_runtime_smoke.py currently requires Linux x86_64 CI')
-    executable = ensure_godot_linux()
+    executable, binary_marker = ensure_godot_linux()
+    project_path = BUILD / 'package' / 'nozzle-godot' / 'project'
+    if not project_path.exists():
+        raise SystemExit(f'packaged Godot project not found: {project_path}')
+    require_packaged_project_current(project_path)
+    project_marker = f'NOZZLE_GODOT_PROJECT path={project_path}'
+    print(project_marker, flush=True)
     command = [
         str(executable),
         '--headless',
         '--path',
-        str(ROOT / 'project'),
+        str(project_path),
         '--quit-after',
         '20',
     ]
-    output = run(command, cwd=ROOT)
+    output = binary_marker + '\n' + project_marker + '\n' + run(command, cwd=ROOT)
     missing = [marker for marker in REQUIRED_MARKERS if marker not in output]
     if missing:
         raise SystemExit('missing runtime markers: ' + ', '.join(missing))

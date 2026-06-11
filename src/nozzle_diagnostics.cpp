@@ -143,8 +143,9 @@ Dictionary NozzleDiagnostics::get_status_table() const {
 
 Dictionary NozzleDiagnostics::get_public_texture_api_surface() const {
     // Compile-time surface probe: these member signatures exist in the pinned
-    // godot-cpp 10.0.0-rc1 generated headers. This deliberately does not call
-    // them because no Godot renderer/runtime smoke is running in CI.
+    // godot-cpp 10.0.0-rc1 generated headers. The runtime smoke loads this
+    // extension and runs CPU oracle checks, but it deliberately does not call
+    // Godot texture transfer APIs.
     using texture_get_native_handle_signature = uint64_t (RenderingServer::*)(const RID &, bool) const;
     using texture_get_rd_texture_signature = RID (RenderingServer::*)(const RID &, bool) const;
     using texture_create_from_native_handle_signature = RID (RenderingServer::*)(RenderingServer::TextureType, Image::Format, uint64_t, int32_t, int32_t, int32_t, int32_t, RenderingServer::TextureLayeredType);
@@ -163,7 +164,7 @@ Dictionary NozzleDiagnostics::get_public_texture_api_surface() const {
     out["rendering_server_texture_create_from_native_handle"] = "deps/godot-cpp/gen/include/godot_cpp/classes/rendering_server.hpp:835";
     out["rendering_server_texture_get_rd_texture"] = "deps/godot-cpp/gen/include/godot_cpp/classes/rendering_server.hpp:852";
     out["texture2drd_get_texture_rd_rid"] = "deps/godot-cpp/gen/include/godot_cpp/classes/texture2drd.hpp:50";
-    out["boundary"] = "Public native/RD texture API symbols compile, but this spike has not run Godot or proven that a backend handle can be mapped to a nozzle backend texture on any platform.";
+    out["boundary"] = "Public native/RD texture API symbols compile, but the runtime smoke only loads the extension and runs CPU oracle checks; it does not execute a Godot texture/render-target to nozzle or nozzle to Godot texture transfer.";
     return out;
 }
 
