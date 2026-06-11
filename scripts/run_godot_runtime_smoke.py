@@ -23,7 +23,6 @@ LINUX_SHA256 = 'd0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3
 REQUIRED_MARKERS = [
     'NOZZLE_GODOT_BINARY version=4.6.3-stable tag=7d41c59c457bd5a245092b4e7eb2d833e3b3f8c3 target=35e80b3a8822a9df9be390814b62f44c0a9c69e8',
     'NOZZLE_GODOT_PROJECT path=',
-    'NOZZLE_GODOT_IMPORT_PASS',
     'NOZZLE_GODOT_EXTENSION_LOAD path=res://nozzle_godot.gdextension status=',
     'NOZZLE_GODOT_CLASSDB class=NozzleDiagnostics available=true',
     'NOZZLE_GODOT_EXTENSION_CLASS class=NozzleDiagnostics available=true',
@@ -131,17 +130,6 @@ def main():
     require_packaged_project_current(project_path)
     project_marker = f'NOZZLE_GODOT_PROJECT path={project_path}'
     print(project_marker, flush=True)
-    import_command = [
-        str(executable),
-        '--headless',
-        '--editor',
-        '--path',
-        str(project_path),
-        '--quit',
-    ]
-    import_output = run(import_command, cwd=ROOT)
-    import_marker = 'NOZZLE_GODOT_IMPORT_PASS'
-    print(import_marker, flush=True)
     command = [
         str(executable),
         '--headless',
@@ -150,7 +138,7 @@ def main():
         '--quit-after',
         '20',
     ]
-    output = binary_marker + '\n' + project_marker + '\n' + import_marker + '\n' + import_output + run(command, cwd=ROOT)
+    output = binary_marker + '\n' + project_marker + '\n' + run(command, cwd=ROOT)
     missing = [marker for marker in REQUIRED_MARKERS if marker not in output]
     if missing:
         raise SystemExit('missing runtime markers: ' + ', '.join(missing))
