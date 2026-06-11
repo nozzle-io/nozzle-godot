@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-test:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - os: macos-latest
@@ -32,6 +32,46 @@ jobs:
           python-version: '3.12'
       - name: Install SCons
         run: python -m pip install scons
+      - name: Compute build cache metadata
+        id: cache-meta
+        shell: bash
+        run: |
+          godot_cpp_sha=$(git -C deps/godot-cpp rev-parse HEAD)
+          nozzle_sha=$(git -C deps/nozzle rev-parse HEAD)
+          scons_version=$(python -c 'import SCons; print(SCons.__version__)')
+          if command -v clang++ >/dev/null 2>&1; then
+            toolchain=$(clang++ --version | head -n 1)
+          elif command -v g++ >/dev/null 2>&1; then
+            toolchain=$(g++ --version | head -n 1)
+          elif command -v cl >/dev/null 2>&1; then
+            toolchain=$(cl 2>&1 | head -n 1)
+          else
+            toolchain=unknown
+          fi
+          toolchain_hash=$(printf '%s' "$toolchain" | python -c 'import hashlib,sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest()[:16])')
+          echo "godot_cpp_sha=$godot_cpp_sha" >> "$GITHUB_OUTPUT"
+          echo "nozzle_sha=$nozzle_sha" >> "$GITHUB_OUTPUT"
+          echo "scons_version=$scons_version" >> "$GITHUB_OUTPUT"
+          echo "toolchain_hash=$toolchain_hash" >> "$GITHUB_OUTPUT"
+          echo "NOZZLE_GODOT_CACHE_METADATA godot_cpp=$godot_cpp_sha nozzle=$nozzle_sha scons=$scons_version toolchain=$toolchain"
+      - name: Cache godot-cpp SCons outputs
+        id: godot-cpp-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .sconsign.dblite
+            deps/godot-cpp/bin
+            deps/godot-cpp/gen
+            deps/godot-cpp/src/**/*.o
+            deps/godot-cpp/src/**/*.os
+            deps/godot-cpp/src/**/*.obj
+          key: >-
+            godot-cpp-scons-${{ runner.os }}-${{ runner.arch }}-${{ matrix.godot_platform }}-template_debug-${{ steps.cache-meta.outputs.godot_cpp_sha }}-${{ steps.cache-meta.outputs.nozzle_sha }}-scons-${{ steps.cache-meta.outputs.scons_version }}-toolchain-${{ steps.cache-meta.outputs.toolchain_hash }}-inputs-${{ hashFiles('SConstruct', '.github/workflows/ci.yml', 'deps/godot-cpp/SConstruct', 'project/nozzle_godot.gdextension') }}
+          restore-keys: |
+            godot-cpp-scons-${{ runner.os }}-${{ runner.arch }}-${{ matrix.godot_platform }}-template_debug-${{ steps.cache-meta.outputs.godot_cpp_sha }}-${{ steps.cache-meta.outputs.nozzle_sha }}-scons-${{ steps.cache-meta.outputs.scons_version }}-toolchain-${{ steps.cache-meta.outputs.toolchain_hash }}-
+      - name: Report godot-cpp cache state
+        shell: bash
+        run: echo "NOZZLE_GODOT_CACHE_HIT godot_cpp=${{ steps.godot-cpp-cache.outputs.cache-hit }}"
       - name: Build GDExtension
         run: scons platform=${{ matrix.godot_platform }} target=template_debug -j2
       - name: Package
