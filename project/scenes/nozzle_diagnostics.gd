@@ -9,7 +9,7 @@ func _ready() -> void:
         get_tree().quit(2)
         return
 
-    var diagnostics := ClassDB.instantiate("NozzleDiagnostics")
+    var diagnostics: Object = ClassDB.instantiate("NozzleDiagnostics")
     if diagnostics == null:
         push_error("NozzleDiagnostics instantiation returned null")
         get_tree().quit(3)
