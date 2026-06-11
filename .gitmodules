@@ -1,0 +1,6 @@
+[submodule "deps/nozzle"]
+	path = deps/nozzle
+	url = https://github.com/nozzle-io/nozzle.git
+[submodule "deps/godot-cpp"]
+	path = deps/godot-cpp
+	url = https://github.com/godotengine/godot-cpp.git

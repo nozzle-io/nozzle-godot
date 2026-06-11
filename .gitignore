@@ -1,0 +1,11 @@
+.sconsign.dblite
+build/
+project/bin/
+*.os
+*.obj
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.framework/
