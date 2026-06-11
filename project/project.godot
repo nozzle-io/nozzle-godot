@@ -5,5 +5,8 @@ config_version=5
 config/name="nozzle-godot example"
 run/main_scene="res://scenes/nozzle_diagnostics.tscn"
 
+[native_extensions]
+paths=["res://nozzle_godot.gdextension"]
+
 [rendering]
 renderer/rendering_method="gl_compatibility"
