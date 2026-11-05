@@ -101,6 +101,8 @@ jobs:
             deps/godot-cpp/src/**/*.obj
           key: >-
             godot-cpp-scons-v3-${{ runner.os }}-${{ runner.arch }}-${{ matrix.godot_platform }}-template_debug-${{ steps.cache-meta.outputs.godot_cpp_sha }}-${{ steps.cache-meta.outputs.nozzle_sha }}-scons-${{ steps.cache-meta.outputs.scons_version }}-toolchain-${{ steps.cache-meta.outputs.toolchain_hash }}-inputs-${{ hashFiles('SConstruct', '.github/workflows/ci.yml', 'deps/godot-cpp/SConstruct', 'include/**/*.hpp', 'src/**/*.cpp', 'src/**/*.hpp', 'project/nozzle_godot.gdextension') }}
+      - name: Verify a dependency update reaches the library
+        run: python tests/check_provenance_rebuild.py ${{ matrix.godot_platform }}
       - name: Package
         run: python scripts/package.py
       - name: Check package shape

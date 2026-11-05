@@ -10,7 +10,7 @@ This is **not** a Godot GPU texture sharing proof and it is **not** a zero-copy 
 - Godot tag object: `7d41c59c457bd5a245092b4e7eb2d833e3b3f8c3`.
 - Godot tag target commit: `35e80b3a8822a9df9be390814b62f44c0a9c69e8`.
 - godot-cpp baseline: `10.0.0-rc1`, commit `58d1de720b8ffe9f8ffcdfe3a85148582cfd2e74`, synced with upstream 4.6-stable.
-- nozzle submodule: `a8efca3c847c39b76057a8e77f94b34146cc9125`.
+- nozzle submodule: the recorded gitlink. Runtime diagnostics report the revision of the actual checkout, or `unknown` if a dependency has no git checkout of its own.
 
 ## Build
 
