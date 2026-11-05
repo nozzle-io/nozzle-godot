@@ -15,14 +15,12 @@
 #include <vector>
 
 #include "nozzle/nozzle_c.h"
+#include "nozzle_godot/build_provenance.hpp"
 
 namespace godot {
 namespace {
 
-constexpr const char *k_nozzle_sha = "a8efca3c847c39b76057a8e77f94b34146cc9125";
 constexpr const char *k_godot_target = "4.6.3-stable";
-constexpr const char *k_godot_cpp_tag = "10.0.0-rc1";
-constexpr const char *k_godot_cpp_sha = "58d1de720b8ffe9f8ffcdfe3a85148582cfd2e74";
 
 struct sender_deleter {
     void operator()(NozzleSender *sender) const noexcept {
@@ -184,7 +182,7 @@ void NozzleDiagnostics::_bind_methods() {
 }
 
 String NozzleDiagnostics::get_nozzle_sha() const {
-    return k_nozzle_sha;
+    return nozzle_godot_build::k_nozzle_sha;
 }
 
 String NozzleDiagnostics::get_godot_target() const {
@@ -195,9 +193,11 @@ Dictionary NozzleDiagnostics::get_status_table() const {
     static_assert(NOZZLE_OK == 0, "unexpected nozzle C ABI NOZZLE_OK value");
     Dictionary out;
     out["godot_target"] = k_godot_target;
-    out["godot_cpp_tag"] = k_godot_cpp_tag;
-    out["godot_cpp_sha"] = k_godot_cpp_sha;
-    out["nozzle_sha"] = k_nozzle_sha;
+    out["godot_cpp_tag"] = nozzle_godot_build::k_godot_cpp_tag;
+    out["godot_cpp_sha"] = nozzle_godot_build::k_godot_cpp_sha;
+    out["godot_cpp_dirty"] = nozzle_godot_build::k_godot_cpp_dirty;
+    out["nozzle_sha"] = nozzle_godot_build::k_nozzle_sha;
+    out["nozzle_dirty"] = nozzle_godot_build::k_nozzle_dirty;
     out["gdextension_build"] = "PASS";
     out["godot_runtime_smoke"] = "PASS";
     out["godot_texture_to_nozzle"] = "CPU_COPY_RUNTIME_ORACLE_METHOD_AVAILABLE";

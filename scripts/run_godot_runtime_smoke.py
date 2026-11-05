@@ -2,6 +2,7 @@
 import hashlib
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -159,6 +160,21 @@ def require_packaged_project_current(project_path):
         raise SystemExit(f'packaged project has no GDExtension library under {project_path / "bin"}')
 
 
+def actual_revision(path):
+    if not (path / '.git').exists():
+        raise SystemExit(f'cannot verify provenance: {path} is not its own git checkout')
+    return subprocess.run(['git', '-C', str(path), 'rev-parse', 'HEAD'], check=True, text=True, stdout=subprocess.PIPE).stdout.strip()
+
+
+def require_actual_provenance(output):
+    pattern = (
+        rf'^NOZZLE_GODOT_PROVENANCE nozzle={actual_revision(ROOT / "deps" / "nozzle")} nozzle_dirty=false '
+        rf'godot_cpp={actual_revision(ROOT / "deps" / "godot-cpp")} godot_cpp_tag=(?!unknown )\S+ godot_cpp_dirty=false$'
+    )
+    if not re.search(pattern, output, re.MULTILINE):
+        raise SystemExit(f'runtime provenance does not match the checkouts: {pattern}')
+
+
 def main():
     (executable, binary_marker), require_transfer = ensure_godot_for_host()
     project_path = BUILD / 'package' / 'nozzle-godot' / 'project'
@@ -182,6 +198,7 @@ def main():
     missing = [marker for marker in required_markers if marker not in output]
     if missing:
         raise SystemExit('missing runtime markers: ' + ', '.join(missing))
+    require_actual_provenance(output)
 
 
 if __name__ == '__main__':
