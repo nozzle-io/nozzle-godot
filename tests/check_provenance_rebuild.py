@@ -83,6 +83,11 @@ def require_header_matches_checkouts():
         raise SystemExit('godot-cpp is not the baseline commit in SConstruct; update the baseline')
 
 
+def require_no_core_actions(output, platform):
+    if re.search(r'ipc\.(cpp|o|os|obj)\b', output):
+        raise SystemExit('a revision change recompiled core sources')
+
+
 def main():
     if len(sys.argv) != 2 or sys.argv[1] not in LIBRARY_PATTERNS:
         raise SystemExit(__doc__)
@@ -101,8 +106,7 @@ def main():
         output = scons(platform)
         require_embedded(platform, probe, original)
         # The sources did not change, so core must not recompile or come from the cache.
-        if re.search(r'ipc\.(cpp|o|os|obj)\b', output):
-            raise SystemExit('a revision change recompiled core sources')
+        require_no_core_actions(output, platform)
 
         stamps = (HEADER.stat().st_mtime_ns, library(platform).stat().st_mtime_ns)
         scons(platform)
