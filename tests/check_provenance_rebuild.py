@@ -84,8 +84,26 @@ def require_header_matches_checkouts():
 
 
 def require_no_core_actions(output, platform):
-    if re.search(r'ipc\.(cpp|o|os|obj)\b', output):
-        raise SystemExit('a revision change recompiled core sources')
+    # SConstruct builds these two manifests under the build/nozzle variant dir.
+    sources = set()
+    for group in ('common', platform):
+        manifest = CORE / 'sources' / f'{group}.txt'
+        sources.update(line.strip() for line in manifest.read_text().splitlines() if line.strip())
+
+    stems = '|'.join(re.escape(Path(src).with_suffix('').as_posix()) for src in sorted(sources))
+    core_object = re.compile(rf'build/nozzle/(?:{stems})(?:\.[\w-]+)*\.(?:o|os|obj)')
+    for line in output.splitlines():
+        action = line.strip().replace('\\', '/')
+        # godot-cpp normally prints "Compiling [shared] SOURCE ...". A raw
+        # compiler command uses -c or /c; a link may mention the same objects.
+        if action.startswith('Compiling ') or re.search(r'(?:^|\s)(?:-c|/c)(?=\s|$)', action):
+            inputs = re.findall(r"""(?:^|[\s"'/])(?:build|deps)/nozzle/([^\s"']+)""", action)
+            if sources.intersection(inputs):
+                raise SystemExit(f'provenance probe compiled a core source: {line}')
+
+        cache_action = re.fullmatch(r"Retrieved `(.+)' from cache", action)
+        if cache_action and core_object.fullmatch(cache_action[1]):
+            raise SystemExit(f'provenance probe retrieved a core object: {line}')
 
 
 def main():

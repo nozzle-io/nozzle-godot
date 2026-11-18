@@ -12,8 +12,10 @@ class ProvenanceGuardTest(unittest.TestCase):
     def test_rejects_core_actions(self):
         for platform, line in [
             ('linux', 'Compiling shared deps/nozzle/src/backends/linux/linux_texture.cpp ...'),
+            ('linux', 'c++ -c -o build/nozzle/src/common/registry.os deps/nozzle/src/common/registry.cpp'),
             ('macos', 'Compiling build/nozzle/src/backends/metal/metal_backend.mm ...'),
             ('windows', r'Compiling shared deps\nozzle\src\backends\d3d11\d3d11_sync.cpp ...'),
+            ('windows', r'cl /c "deps\nozzle\src\common\frame.cpp"'),
             ('linux', "Retrieved `build/nozzle/src/common/registry.os' from cache"),
             ('linux', "Retrieved `build/nozzle/src/c_api/nozzle_c.o' from cache"),
         ]:
